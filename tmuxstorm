@@ -1,0 +1,39 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+ROOTSTORM=/opt/storm
+NAME=tmuxstorm
+TMUXSESSION=storm
+
+. /etc/default/locale
+
+tmux -uq new-session -d -s $TMUXSESSION
+
+case "$1" in
+	start)
+		tmux -q new-window -t $TMUXSESSION:1 -k -n 'storm' "cd $ROOTSTORM;ruby app/portfinder.rb"
+		tmux -q select-window -t $TMUXSESSION:1
+		#tmux -q splitw -t $TMUXSESSION:1.0 -v -p 50 "cd $ROOTSTORM;ruby mexp_task_worker.rb -w -a"
+		tmux -q splitw -t $TMUXSESSION:1.0 -h -p 50 "cd $ROOTSTORM;ruby app/httpd.rb"
+		;;
+	stop-all)
+		kill `ps ax | grep "ruby app/bkpcfg.rb" | grep -v grep | awk '{print $1}'` > /dev/null
+		kill `ps ax | grep "ruby app/portfinder.rb" | grep -v grep | awk '{print $1}'` > /dev/null
+		kill `ps ax | grep "ruby app/httpd.rb" | grep -v grep | awk '{print $1}'` > /dev/null
+		;;
+	stop)
+		kill `ps ax | grep "ruby app/portfinder.rb" | grep -v grep | awk '{print $1}'` > /dev/null
+		;;
+	rebuild)
+		cd $ROOTSTORM
+		$ROOTSTORM/zmake_all.sh new
+		;;
+	*)
+		echo "Usage: $NAME {start|stop|stop-all|rebuild}" >&2
+		exit 3
+		;;
+esac
+
+:

@@ -1,0 +1,65 @@
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+<script type='text/javascript' src="<%= @param['baseurl'] %>/files/knockout-min.js"></script>
+<script src="<%= @param['baseurl'] %>/files/geo.js" type="text/javascript">
+
+</script>
+<div style="position:absolute;right:20px;top:15px;">
+	<div class="alert" role="alert" data-bind="css: popupType"><span class="glyphicon glyphicon-tag" aria-hidden="true"></span>&nbsp;&nbsp;&nbsp;<span data-bind="text: popupText">Empty</span></div>
+</div>
+<div id="edit_panel " style="margin: 20px 10px">
+	<div class="input-group input-group-sm" style="width:380px;float:left">
+		<span class="input-group-btn">
+			<button data-bind='text: host' class="btn btn-default" type="button" disabled >192.168.0.1</button>	
+		</span>
+		<input data-bind='value: address' style="width:200px" type="text" class="form-control" placeholder="Address" aria-describedby="sizing-addon3">
+		&nbsp;
+		<div class="btn-group" role="group" aria-label="...">
+			<button data-bind='click: $root.geocodeAddress' type="button" class="btn btn-default">
+					<span class="glyphicon glyphicon-globe" aria-hidden="true"></span>	
+			</button>
+		</div>
+	</div>
+	<div class="input-group input-group-sm" style="width:290px;float:left">
+		<span class="input-group-btn">
+			<button class="btn btn-default" type="button" disabled >Latitude</button>	
+		</span>
+		<input data-bind='value: latitude' style="width:200px" type="text" class="form-control" placeholder="Value" aria-describedby="sizing-addon3">
+	</div>	
+	<div class="input-group input-group-sm" style="width:390px;">
+		<span class="input-group-btn">
+			<button class="btn btn-default" type="button" disabled >Longitude</button>	
+		</span>
+		<input data-bind='value: longitude' style="width:200px" type="text" class="form-control" placeholder="Value" aria-describedby="sizing-addon3">
+		&nbsp;
+		<div class="btn-group" role="group" aria-label="...">
+			<button data-bind='click: $root.markLocation' type="button" class="btn btn-default">
+					<span class="glyphicon" aria-hidden="true" data-bind="css: locationButton"></span>	
+			</button>
+		</div>
+		<!--button data-bind='click: $root.saveAll' type="button" class="btn btn-default">
+					<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>	
+		</button-->
+	</div>
+
+</div>
+<div id="z" style="float:left;width:100%">
+	<div id="map" style="width:69%;height:81%;float:left"></div>
+	<div class="table-responsive" style="padding-left:10px;width: 30%; height: 81%; overflow-y: scroll;">
+		<table  class="table table-condensed table-hover storm-table-small">
+			<thead>
+				<tr>
+					<th>Host</th>
+					<th>Hostname</th>
+					<th>Address</th>
+				</tr>
+			</thead>
+			<tbody data-bind='foreach: geolist'>
+				<tr data-bind='click: $root.selectRow'>
+					<td data-bind='text: host'></td>
+					<td data-bind='text: hostname'></td>
+					<td data-bind='text: address'></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>

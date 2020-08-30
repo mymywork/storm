@@ -1,0 +1,187 @@
+<script type='text/javascript' src="<%= @param['baseurl'] %>/files/knockout-min.js"></script>
+<script type="text/javascript">
+	$(document).ready(function() {
+		var ViewModel = function() {
+	
+			var self = this;
+			self.objectid = ko.observable();
+			self.host = ko.observable('0.0.0.0');
+			self.list_pppoe_objects = ko.observableArray([]);
+			self.list_router_objects = ko.observableArray([]);
+			self.show_router = ko.observable(false);
+			self.show_pppoe = ko.observable(false);
+			self.show_continue = ko.observable(false);
+			self.pppoe = null;
+			self.router = null;
+			self.output = ko.observable("");
+			self.module_name = ko.observable("auto");;
+			self.module_id = 'a';
+			self.docxurl = ko.observable("");
+
+			self.clickLearnMode = function () {
+						
+			}
+			self.clickGetObjects = function () {
+				self.docxurl("")
+				$.ajax({type: 'post',
+					url: '/storm/routertune_getobjects',
+					data: 'contract='+self.objectid(),
+					dataType : "json",
+					retries : 1,
+					success: function (data, textStatus) {
+						console.log(data)
+						if ( data.status == "ok" ) {
+							self.show_pppoe(true);
+							self.list_pppoe_objects(data.pppoes);			
+							self.show_router(true);
+							self.list_router_objects(data.routers);					
+							if ( data.pppoes.length == 1 ) {
+								self.pppoe = data.pppoes[0]		
+							}
+							if ( data.routers.length == 1 ) {
+								self.router = data.routers[0]		
+							}
+							//if ( self.pppoe != null && self.router != null ) {
+							//	self.clickContinue();
+							//} else {
+								self.show_continue(true);
+							//}
+
+						} else {
+							alert(data.reason);
+						}
+					}
+				}).fail(function () {
+					alert("Ошибка ajax запроса.")
+				});
+			}
+
+			self.clickPPPoEObject = function (x) {
+				self.pppoe = x;	
+			}	
+			self.clickRouterObject = function (x) {
+				self.router = x;	
+			}	
+			self.clickContinue = function () {
+				self.output("Processing tune...")
+				self.ajax(0);
+			}
+			self.clickHandleTemplate = function () {
+				self.output("Processing generate template...")
+				self.ajax(1);
+			}
+			self.clickMakeDocx = function () {
+				self.output("Generate docx file...")
+				self.ajaxGenDocx();
+			}
+			self.clickModule = function (x,elem) {
+				var n = $(elem.currentTarget).attr('val');
+				var t = $(elem.currentTarget).text();
+				self.module_name(t)
+				self.module_id = n;
+			}
+			self.ajax = function (handle) {
+				if ( self.pppoe == null || self.router == null ) return;
+				
+				$.ajax({type: 'post',
+					url: '/storm/routertune_start',
+					data: 'pppoeid='+self.pppoe['objectid']+'&routerid='+self.router['objectid']+'&host='+self.host()+'&handleTemplate='+handle+'&module='+self.module_id,
+					retries : 1,
+					dataType : "json",
+					success: function (data, textStatus) {
+						console.log(data)
+						if ( data.status == "ok" ) {
+							self.output(data.reason)	
+						} else {
+							alert(data.reason);
+						}
+					}
+				}).fail(function () {
+					alert("Ошибка ajax запроса.")
+				});
+			}
+			self.ajaxGenDocx = function (handle) {
+				if ( self.pppoe == null || self.router == null ) return;
+				
+				$.ajax({type: 'post',
+					url: '/storm/routertune_gendocx',
+					data: 'contract='+self.objectid()+'&routerid='+self.router['objectid'],
+					retries : 1,
+					dataType : "json",
+					success: function (data, textStatus) {
+						console.log(data)
+						if ( data.status == "ok" ) {
+							self.docxurl(data.reason)
+						} else {
+							alert(data.reason);
+						}
+					}
+				}).fail(function () {
+					alert("Ошибка ajax запроса.")
+				});
+			}
+
+
+		}
+		var koViewModel = new ViewModel([]);
+		ko.applyBindings(koViewModel);
+	});
+</script>			
+			
+	<div class="form-inline">
+		<div class="form-group">
+			<div class="input-group">
+				<div class="input-group-addon">
+					<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+				</div>
+				<input data-bind='value: objectid' type="text" class="form-control" placeholder="contract -50101">
+			</div>
+		</div>
+		&nbsp;<button data-bind='click: $root.clickGetObjects' class="btn btn-default" style="width:100px;">Tune</button>
+		<br>
+		<br>
+		<div class="form-group">
+			<div class="input-group">
+				<div class="input-group-addon">
+					<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+				</div>
+				<input data-bind='value: host' type="text" class="form-control" placeholder="host">
+			</div>
+		</div>
+		<span>&nbsp;&nbsp;  0.0.0.0 - Auto discover 192.168.1.1, 192.168.0.1</span>
+	</div>
+	<br>
+	<div class="dropdown">
+		Modules:
+		<button data-bind='text: $root.module_name' class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+			Auto
+			<span class="caret"></span>
+		</button>
+		<ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+			<% @param['modules'].each_index do |i| %>
+				<li><a val="<%= i %>" data-bind="click: $root.clickModule"><%= @param['modules'][i]['desc'] %></a></li>
+			<% end %>
+		</ul>
+	</div>
+	<br>
+	<div data-bind="visible: show_pppoe">
+		<span>Объекты PPPoE</span><br>
+		<select multiple="multiple" width="50" data-bind="foreach: list_pppoe_objects">
+			<option data-bind="click: $root.clickPPPoEObject, value: objectid, text: 'objectid:'+objectid+' contract:'+contract+' pppoe:'+login+'/'+password"></option>
+		</select>
+	</div>
+	<br>
+	<div data-bind="visible: show_router">
+		<span>Объекты настройки</span><br>
+		<select multiple="multiple" width="50" data-bind="foreach: list_router_objects">
+			<option data-bind="click: $root.clickRouterObject, value: objectid, text: 'objectid:'+objectid+'  '+contract+' '+comment+' wifi:'+ssid+'/'+psk+' url:'+url"></option>
+		</select>
+	</div>
+	<br>
+	&nbsp;<button data-bind='click: $root.clickContinue , visible: show_continue' class="btn btn-default" style="width:100px;">Continue</button>
+	&nbsp;<button data-bind='click: $root.clickHandleTemplate , visible: show_continue' class="btn btn-default" style="width:200px;">Handle template</button>
+	&nbsp;<button data-bind='click: $root.clickMakeDocx , visible: show_continue' class="btn btn-default" style="width:200px;">Make anketa.docx</button>&nbsp;&nbsp;<a data-bind="visible: docxurl() != ''  , text: objectid, attr: { href: docxurl }"></a>
+	<br>
+	<pre data-bind="text: output" id="console" style="overflow-y:scroll; width:100%; height:80%;margin-top:10px">
+	</pre>
+

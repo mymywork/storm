@@ -1,0 +1,46 @@
+<form action="<%= @param['baseurl'] %>/search" method="get" class="form-inline">
+	<div class="form-group">
+    		<div class="input-group">
+      			<div class="input-group-addon">
+				<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+			</div>
+			<input name="vlan" value="<%= @param['vlan'] %>"  type="text" class="form-control" placeholder="vlan number">
+    		</div>
+  	</div>
+  	&nbsp;<button type="submit" class="btn btn-default">Search</button>
+	<div class="btn-group" data-toggle="buttons">
+		<% p @param['modes'] %>
+		<label class="btn btn-primary <%= (@param['modes'].index('access') != nil) ? "active" : ""  %>">
+			<input name="access" type="checkbox" autocomplete="off" <%= (@param['modes'].index('access') != nil) ? "checked" : ""  %>> Access
+		</label>
+		<label class="btn btn-primary <%= (@param['modes'].index('hybrid') != nil) ? "active" : ""  %>">
+			<input name="hybrid" type="checkbox" autocomplete="off" <%= (@param['modes'].index('hybrid') != nil ) ? "checked" : ""  %>> Hybrid
+		</label>
+		<label class="btn btn-primary <%= (@param['modes'].index('trunk') != nil) ? "active" : ""  %>">
+			<input name="trunk" type="checkbox" autocomplete="off" <%= (@param['modes'].index('trunk') != nil ) ? "trunk" : ""  %>> Trunk
+		</label>
+	</div>
+
+</form>
+<table class="table table-striped table-condensed">
+	<tr>
+		<th>IP</th>
+		<th>Hostname</th>
+		<th>Port</th>
+		<th>Description</th>
+		<th>Mode</th>
+		<th>Untagged</th>
+		<th>Tagged</th>
+	</tr>
+	<% @param['list'].each do |row| %>
+		<tr>
+			<td><%= row['host'] %></td>
+			<td><%= row['hostname'] %></td>
+			<td><%= row['port'] %></td>
+			<td><%= row['desc'] %></td>
+			<td><%= row['mode'] %></td>
+			<td><%= row['untagged'] %></td>
+			<td><%= row['tagged'] %></td>
+		</tr>
+	<% end %>
+</table>

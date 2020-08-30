@@ -1,0 +1,606 @@
+#!/usr/bin/ruby
+require_relative "config.rb"
+
+class Switch < ParamFilter
+
+	# getMacAddressByVlan
+	attr_accessor :mactable
+	# getConfiguration
+	attr_accessor :curiface
+	attr_accessor :curvlans
+	attr_accessor :curmode
+	attr_accessor :list
+	attr_accessor :trunknames
+	attr_accessor :hostname
+	# setBroadcastStorm
+	attr_accessor :broadcastLimitAccess
+	attr_accessor :broadcastLimitTrunk
+	# login
+	attr_accessor :username
+	attr_accessor :password
+	attr_accessor :password_a
+	attr_accessor :enablePassword
+	attr_accessor :version
+	attr_accessor :skipver
+	attr_accessor :vendor
+	attr_accessor :revision
+	attr_accessor :portsnum
+	# 
+	attr_accessor :me
+	attr_accessor :current_account
+	attr_accessor :only_password
+	#
+
+
+	def initialize(mexpect)
+		@me = mexpect
+		@list = Hash.new
+		@version = nil
+		@backupSSHAccount = $backupSSHAccount
+		@enablePassword = $enablePassword
+		@version = "unknow"
+		@skipver = false
+		@portsnum = nil
+		@revision = nil
+		@vendor = nil
+		@hostname = nil
+		templates()
+		@accounts = $accounts 
+		@current_account = nil
+		@only_password = false
+	end
+
+	def copy_all_public(obj)
+		obj.instance_variables.each { |k|
+			self.instance_variable_set(k,obj.instance_variable_get(k))
+		}
+	end
+
+	#
+	# templates
+	#
+	def templates
+		slf = self
+	
+		@me.templates("passive_osdetect") do 
+			#
+			# Passive OS fingerversion
+			#
+
+			# VMWare
+			expect(/VMWare/) do
+				pinfo "Passive OS fingerprint VMWare"
+				slf.version = "vmware"
+				slf.vendor = "vmware"
+			end
+			# JunOS
+			expect(/JUNOS/) do
+				pinfo "Passive OS fingerprint Juniper"
+				slf.vendor = "juniper"
+			end
+			# 8012M
+			expect(/AT-8012M/) do
+				pinfo "Passive OS fingerprint AT-8021M"
+				slf.version = "8012m"
+				slf.skipver = true
+			end
+			# DGS-1100
+			expect(/DGS-1100-([0-9]+)/) do |portsnum|
+				pinfo "Model: DGS1100 Ports count:#{portsnum[1]}"
+				slf.version = "dgs1100"
+				slf.vendor = "dlink"
+				slf.portsnum = portsnum[1].to_i
+			end
+			# DES-3526
+			expect(/DES-3526/) do |portsnum|
+				pinfo "Model: DES-3526 Default ports 26"
+				slf.version = "des3526"
+				slf.vendor = "dlink"
+				slf.portsnum = 26
+			end
+			# DGS-3420
+			expect(/DGS-3420-([0-9]+)/) do |portsnum|
+				pinfo "Model: DGS-3420 Ports count:#{portsnum[1]}"
+				slf.version = "dgs3420"
+				slf.vendor = "dlink"
+				slf.portsnum = portsnum[1].to_i
+			end
+			# DES-3200
+			expect(/DES-3200-([0-9]+)/) do |portsnum|
+				pinfo "Model: DES3200 Ports count:#{portsnum[1]}"
+				slf.version = "des3200"
+				slf.vendor = "dlink"
+				slf.portsnum = portsnum[1].to_i
+			end
+			# TDMOP
+			expect(/(TDMOP|TDMoP)/) do
+				pinfo "Model: TDMOP"
+				slf.version = "tdmop"
+				slf.skipver = true
+				break
+			end
+			# Qtech 2500
+			expect(/System\(QOS\)/) do
+				pinfo "Model: 2500 Qtech"
+				slf.version = "2500"
+				slf.vendor = "qtech"
+				slf.skipver = true
+			end
+			# NPort 5410
+			expect(/NPort/) do
+				pinfo "Model: NPort"
+				slf.version = "nport"				
+				slf.skipver = true
+				break
+			end
+			# American Power Conversion
+			expect(/American Power Conversion/) do
+				pinfo "Model: Symmeta"
+				slf.version = "symmetra"				
+				slf.skipver = true
+				break
+			end
+			# Nortel
+			expect(/Nortel/) do
+				pinfo "Model: Nortel"
+				slf.version = "nortel"				
+				slf.skipver = true
+				break
+			end
+			# BDCOM
+			expect(/BDCOM P3310/) do
+				pinfo "Model: BDCOM"
+				slf.version = "p3310"				
+				slf.vendor = "bdcom"				
+				slf.skipver = true
+			end
+			# BDCOM
+			expect(/BDCOM P3608-2TE/) do
+				pinfo "Model: BDCOM"
+				slf.version = "p3608-2te"				
+				slf.vendor = "bdcom"				
+				slf.skipver = true
+			end
+			# SNR AS BDCOM
+			expect(/SNR-S2970G-48S/) do
+				pinfo "Model: SNR"
+				slf.version = "s2970g_48s"				
+				slf.vendor = "snr"				
+				slf.skipver = true
+			end
+		end
+	end
+
+	def getAccountHost(ca)
+		r = nil
+		@accounts.each do |x|
+			next if x == ca
+			next if !x.has_key?("hosts")
+			x['hosts'].each	do |z|
+				next if z['host'] != @me.host
+				if z.has_key?('port')
+					next if z['port'].to_s == @me.port
+					r = x
+					break
+				else
+					r = x
+				end
+			end
+		end
+		r
+	end
+
+	def getAccountAll(ca)
+		r = nil
+		idx = @accounts.index(ca).to_i
+		#p @accounts.length-1
+		for i in idx..@accounts.length-1
+			x = @accounts[i]
+			#p i
+			next if x.has_key?("hosts")
+			next if x == ca
+			r = x
+			break
+		end
+		#p r
+		r
+	end
+
+	def getAccount
+		r = getAccountHost(@current_account)
+		#p "getAccountHost() - #{r}"	
+		if r != nil
+			@current_account = r
+			return r
+		end
+		r = getAccountAll(@current_account)
+		@current_account = r
+		#p "getAccountAll - #{r}"
+		r 
+	end
+
+	#
+	# WARRING: Login called from instance Switch without child.
+	# incorrect|invalid|denied|bad|fail|error
+	def login
+		slf = self
+		connected = true	
+		#wait("Escape")
+		#@me.send("z\r")
+		#exit
+		@me.each("passive_osdetect") do
+			expect(/Last login: /i) do
+				pinfo "Last login skip"
+			end
+			expect(/(incorrect|invalid|denied|bad|fail|error)/i) do
+				connected = false		
+			end
+			expect(/(login|user name|username)/i) do 
+				r = slf.getAccount()
+				if r == nil 
+					pwarn "Unknow account for this device."
+					connected = false		
+					slf.me.close()
+					break
+				end
+				pinfo "Found account #{slf.me.host} #{slf.current_account}"
+				send("#{slf.current_account['login']}\r")
+			end
+			expect(/password/i) do
+				if slf.current_account == nil || slf.only_password
+					slf.getAccount() 
+					slf.only_password = true
+				end
+				send("#{slf.current_account['password']}\r")
+			end
+			expect(/(close|unable|refused|timed out)/i) do
+				connected = false
+			end
+			expect(/Terminal type?/i) do
+				pinfo "Confirm terminal type."
+				send("\n")
+			end
+			# Prompt
+			expect(/(#|%|>|Enter your selection)/) do
+				connected = true
+				pinfo "Detected prompt (login/passive version)"
+				break
+				# Warring if not place break, cycle not exited
+			end
+			# SSH
+			expect(/Are you sure you want to continue connecting \(yes\/no\)?/) do
+				pinfo "SSH Key confirmation."
+				send("yes\n")	
+			end
+		end
+		if @me.timeout
+			#
+			# timeout kill cli
+			#
+			pdbg "Recving timeouted, close connection"
+			@me.close()
+			connected = false
+		end			
+		#
+		# wait process exit status only for telnet
+		#
+		@me.checkClose?() if !connected
+		return connected
+	end
+
+	def getVersion
+		slf = self
+		
+		return @version if @skipver 
+		
+		if slf.vendor == "dlink"
+			# specific dlink	
+			@me.send("show switch\n")
+		elsif slf.vendor == "juniper"
+			# specific Juniper
+			@me.send("cli\n")
+			wait(">")
+			@me.send("sh ver\n");
+		else
+			# all other
+			@me.send("sh ver\n");
+		end 
+		#
+		# show version
+		#
+		@me.each do
+			# dlink revision check hardware
+			expect(/Hardware Version[\s\t]+:[\s\t]+([a-zA-Z0-9]+)\n/) do |x|
+				if slf.vendor == "dlink"	
+					pinfo "Revision: #{x[1]}"
+					slf.revision = x[1]
+				end
+			end
+			# prompt
+			expect(/#|>/) do
+				pinfo "Detected prompt"
+				break
+			end
+			# Juniper j2320
+			expect(/Model:\s+j2320/) do
+				pinfo "Model: Juniper j2320"
+				slf.version = "j2320"
+			end
+			# Juniper m7i
+			expect(/Model:\s+m7i/) do
+				pinfo "Model: Juniper m7i"
+				slf.version = "m7i"
+			end
+			# Juniper mx80
+			expect(/Model:\s+mx80/) do
+				pinfo "Model: Juniper mx80"
+				slf.version = "mx80"
+			end
+			# Juniper ex4550
+			expect(/Model:\s+ex4550/) do
+				pinfo "Model: Juniper ex4550"
+				slf.version = "ex4550"
+			end
+			# 2700
+			expect(/QSW-2700/) do
+				pinfo "Model: 2700 Qtech"
+				slf.version = "2700"
+				slf.vendor = "qtech"
+			end
+			# snr 2950
+			expect(/(SNR-S2950|Switch Device, Compiled)/) do
+				pinfo "Model: SNR-2950"
+				slf.version = "s2950"				
+				slf.vendor = "snr"
+			end
+			# snr 2960-24g
+			expect(/SNR-S2960-24G/) do
+				pinfo "Model: SNR-2960-24G"
+				slf.version = "s2960_24g"				
+				slf.vendor = "snr"
+			end
+			# snr 2960-48g
+			expect(/SNR-S2960-48G/) do
+				pinfo "Model: SNR-2960-48G"
+				slf.version = "s2960_48g"				
+				slf.vendor = "snr"
+			end
+			# snr 2965 (port numeration as qsw2700)
+			expect(/SNR-S2965/) do
+				pinfo "Model: SNR-2965"
+				slf.version = "s2965"				
+				slf.vendor = "snr"
+			end
+			# snr 2990 
+			expect(/SNR-S2990G-24T/) do
+				pinfo "Model: SNR-2990"
+				slf.version = "s2990"				
+				slf.vendor = "snr"
+			end
+			# 2800
+			expect(/QSW-2800/) do
+				pinfo "Model: 2800 Qtech"
+				slf.version = "2800"				
+				slf.vendor = "qtech"
+			end
+			# 2900
+			expect(/QSW-2900/) do
+				pinfo "Model: 2900 Qtech"
+				slf.version = "2900"
+				slf.vendor = "qtech"
+			end
+			# 3900
+			expect(/QSW-3900/) do
+				pinfo "Model: 3900 Qtech"
+				slf.version = "3900"
+				slf.vendor = "qtech"
+			end
+			# 8300
+			expect(/QSW-8300/) do
+				pinfo "Model: 8300 Qtech"
+				slf.version = "8300"				
+				slf.vendor = "qtech"
+			end
+			# cisco 6506
+			expect(/C6506/) do
+				pinfo "Model: Cisco 6506"
+				slf.version = "c6506"
+				slf.vendor = "cisco"
+			end
+			# cisco 2960
+			expect(/C2960/) do
+				pinfo "Model: Cisco 2960"
+				slf.version = "c2960"
+				slf.vendor = "cisco"
+			end
+			# cisco 2950
+			expect(/C2950/) do
+				pinfo "Model: Cisco 2950"
+				slf.version = "c2950"
+				slf.vendor = "cisco"
+			end
+			# cisco 3750
+			expect(/C3750/) do
+				pinfo "Model: Cisco 3750"
+				slf.version = "c3750"
+				slf.vendor = "cisco"
+			end
+			# cisco 3550
+			expect(/C3550/) do
+				pinfo "Model: Cisco 3550"
+				slf.version = "c3550"
+				slf.vendor = "cisco"
+			end
+			# cisco CIGESM
+			expect(/CIGESM/) do
+				pinfo "Model: CIGESM"
+				slf.version = "cigesm"
+				slf.vendor = "cisco"
+			end
+			# Eltex MES2324FB
+			expect(/Active-image:/) do
+				pinfo "Model: Eltex MES2324FB"
+				slf.version = "mes2324fb"
+				slf.vendor = "eltex"
+			end
+			# Eltex MES1124
+			expect(/SW version\s+1/) do
+				pinfo "Model: Eltex MES1124"
+				slf.version = "mes1124"
+				slf.vendor = "eltex"
+			end
+			# AliedTelesis
+			expect(/SW version\s+3/) do
+				pinfo "Model: AliedTelesis 8000S"
+				slf.version = "ali"
+				slf.vendor = "alied"
+			end
+			# Dlink
+			expect(/fdb/) do
+				pinfo "Model: Dlink"
+				slf.version = "dlink"
+			end
+			# SE100
+			expect(/Redback Networks SmartEdge/) do
+				pinfo "Redback Networks SmartEdge"
+				slf.version = "se100"
+				slf.vendor = "redback"
+			end
+			# space
+			expect(/(more|More|SPACE)/) do
+				pinfo "More"
+				if slf.vendor == "dlink"
+					send("a")
+				else
+					send(" ")
+				end
+			end
+		end
+		@version
+	end
+
+	def getAbsolutePort(port)
+		return port
+	end
+
+	def enableMode()
+
+	end
+
+	def disableMode()
+
+	end
+
+	def setSeverity()
+
+	end
+
+	def checkPingPong()
+
+	end
+
+	def expand_range(range)
+		pinfo "Expand range: #{range}"
+		rh = Array.new
+		r = range.split(",")
+		r.each do |x|
+			a = x.split("-")
+			#signle port
+			if a.count == 1
+				rh.push(a[0].to_s)
+			#range
+			else
+				i = a[0].to_i	# from
+				e = a[1].to_i	# end
+				while i <= e do
+					rh.push(i.to_s)
+					i = i + 1
+				end
+			end
+		end
+		pwarn "Expanded:#{rh}"
+		rh
+	end
+
+	def getPortsStatus()
+	
+	end
+		
+	def setSnmpSettings
+
+	end
+
+	def setUnconfiguredAccess(nports=nil)
+
+		# check for dlink unconfigured ports
+		if nports != nil
+			for i in 1..nports
+				pwarn "Checkin port present #{i}"
+				if !self.list['ports'].has_key?(i.to_s)
+					pinfo "Creating port #{i}"
+					self.list['ports'][i.to_s] = Hash.new
+				end
+			end	
+		end
+
+		self.list['ports'].each do |p,opts|
+			if !opts.has_key?("mode")
+				self.list['ports'][p]['mode'] = "access"
+				self.list['ports'][p]['unconfigured'] = "yes"
+			end
+		
+			if !opts.has_key?('untagged')
+				self.list['ports'][p]['untagged'] = ["1"]
+			end
+		
+			if !opts.has_key?('tagged')
+				self.list['ports'][p]['tagged'] = []
+			end
+		end
+		self.list
+	end
+
+	def macToNormal(mac)
+		mac.downcase().delete("-.:").scan(/../).join(":")
+	end
+	def macToCisco(mac)
+		mac.downcase().delete("-.:").scan(/..../).join(".")
+	end
+	def macToDash(mac)
+		mac.downcase().delete("-.:").scan(/../).join("-")
+	end
+
+	def typeLongToShort(port)
+		@ifacenames[port]
+	end
+	def typeShortToLong(port)
+		@ifacenames.key(port)
+	end
+
+	def setSnmpTrapHost(host,community)
+	end
+	def removeSnmpTrapHost(host,community)
+	end
+
+	def exit()
+		# initiate recving anything (.*) on stream for closed process
+		# when recv raise exception, call checkExitStatus in recv call that exited zombie
+		pinfo "Exit() - recving any and wait close."
+		@me.each do
+			expect(/.*/) do 
+			end
+		end
+		Debug.closeAll()
+	end
+
+	def wait(regex)
+		slf = self
+		@me.each do
+			expect(regex) do 
+				pinfo "Wait"
+				break
+			end
+		end
+	end
+end
+

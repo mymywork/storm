@@ -1,0 +1,16 @@
+
+<ul>
+	<% #p "NODE:#{@param.keys}" %>
+	<% @param.keys.each do |port| %>
+		<% #p "PORT:#{port}" %>
+		<% if @param[port] != 'UPLINK' %>
+			<% mac = @param[port].keys[0] %>
+			<% nextnode = @param[port][mac] %>
+			<li>{<%= port %>} <span id="<%= $arp[mac]  %>$" class="host"><%= $arp[mac]  %></span> - <span class="name"><%= $names[mac] %></span> - <span class="mac"><%= mac %>  </span>
+			<%= (ERBContext.new({ "param" => nextnode })).render('./template/tree.erb') %>
+			</li>
+		<% else %>
+			<li>{<%= port %>} <span class="host"></span> <span class="name">UPLINK</span> <span class="mac"></span></li>
+		<% end %>
+	<% end %>
+</ul>

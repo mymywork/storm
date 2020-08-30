@@ -1,0 +1,47 @@
+<% idx = @param['idx'].to_i %>
+<div class="dropdown">
+	<button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+		
+		<%= @param['reqlist'][idx]['desc'] %>
+		<span class="caret"></span>
+	</button>
+	<ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+		<% @param['reqlist'].each_index do |i| %>
+			<li><a href="<%= @param['baseurl'] %>/sql?idx=<%= i %>"><%= @param['reqlist'][i]['desc'] %></a></li>
+		<% end %>
+	</ul>
+&nbsp;&nbsp;&nbsp;<%= ( @param['reqlist'][idx].has_key?('comment') ? @param['reqlist'][idx]['comment'] : '' ) %></div>
+<form action="<%= @param['baseurl'] %>/sql" method="post" class="form-inline">
+	<% @param['reqlist'][idx]['params'].each do |key,value| %>
+		<div class="input-group input-group-sm sqlinput">
+			<span class="input-group-btn">
+				<button class="btn btn-default" disabled="" type="button"><%= key %></button>
+			</span>
+			<input name="<%= key %>" class="form-control" type="text" aria-describedby="sizing-addon3" placeholder="Value" value="<%= value %>">
+		</div>
+	<% end %>
+	<div style="clear:both"/>
+	<textarea name="sql" spellcheck='false' style="width:100%;height:100px;margin: 10px 0"><%= @param['reqlist'][idx]['sql'] %></textarea>
+	<input name="idx" type="hidden" value="<%= idx %>">
+	<input class="btn btn-default" type="submit" value="Submit">
+</form>
+<% if @param['table'].size > 0 %>
+	<table class="table table-striped table-condensed" style="margin: 10px 0 ">
+		<tr>
+			<% @param['table'][0].each do |k,v| %>
+				<% if k.instance_of?(String) %>
+				<th><%= k %></th>
+				<% end %>
+			<% end %>
+		</tr>
+		<% @param['table'].each do |row| %>
+			<tr>
+				<% row.each do |k,v| %>
+					<% if k.instance_of?(String) %>
+						<td><%= v %></td>
+					<% end %>
+				<% end %>
+			</tr>
+		<% end %>
+	</table>
+<% end %>

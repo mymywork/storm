@@ -1,0 +1,116 @@
+<script type="text/javascript">
+$(document).ready(function () {
+	self = this;
+	var con = $('#console');
+	var socket = 0;
+	var color = "black";
+	var last = '';
+	var recovery = false;
+	function p(str) {
+		con.append(str);
+	}
+	
+	$("#diag").click(function() {
+		var input = $("#hostport").val()
+		if ( input.indexOf(":") == -1 ) {
+			alert("Invalid format must be host:port")
+			return;	
+			}
+		var list = document.location.pathname.split("/");
+		delete list[list.length-1];
+		var path = list.join("/")
+		socket = new WebSocket("wss://"+document.location.host+path+"/websocket");
+		socket.onopen = function() {
+			p("Connected<br>")
+			var x = JSON.stringify({ 'action' : 'diagport', 'hostport' : input,  'recovery' : recovery })
+			socket.send(x)	
+		};
+
+		socket.onclose = function(event) {
+			if (event.wasClean) {
+				p('Connection closed cleanly.<br>');
+			} else {
+				p('Connection reset, code: ' + event.code + '<br>');
+			}
+		};
+		
+		socket.onerror = function(error) {
+			if ( error.message != undefined ) {
+				p("Connection error: " + error.message + "<br>");
+			}
+		};
+
+		socket.onmessage = function(event) {
+
+			replacer = function(str, p1, p2, offset, s) {
+				if ( p1 == "0" ) {
+					return '</span>';
+				} else if ( p1 == "31"  ) {
+					color = 'red';
+				} else if ( p1 == "32"  ) {
+					color = 'green';
+				} else if ( p1 == "35"  ) {
+					color = 'purple';
+				}
+				return '<span style="color:'+color+'">'
+			}	
+
+			console.log(event.data)
+			//buf = event.data.replace(/\n/g,"<br>")
+			list = event.data.split(/\n/)
+			
+			$(list).each(function(i,x) {
+				if ( i+1 == list.length ) {
+					if (i == 0) {
+						//last and first string
+						last = last+x;
+					} else {
+						last = x;
+					}
+				} else {
+					if (i == 0) {
+						x = last+x;
+					}
+					buf = x.replace(/\[([0-9]+)m/g,replacer)
+					buf = buf.replace(/\[([0-9]+);([0-9]+)m/g,replacer)
+					buf = buf.replace(/\x1b/g,'');
+					p("<span style='color:"+color+"'>"+buf+"</span><br>")
+				}
+				color = "black";
+			});
+		};
+
+	});
+
+	$("#recovery").click(function() {
+		if ( $("#recovery").hasClass("active") ) {
+			$("#recovery > span").text("Recovery is on");	
+			recovery = true;	
+		} else {
+			$("#recovery > span").text("Recovery is off");	
+			recovery = false;
+		}				
+	});
+		
+});
+</script>
+<div class="form-inline">
+	<div class="form-group">
+		<div class="input-group">
+			<div class="input-group-addon">
+				<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+			</div>
+			<input id="hostport" type="text" class="form-control" placeholder="host:port">
+		</div>
+	</div>
+	&nbsp;<button id="diag" type="submit" class="btn btn-default">do</button>
+	<div class="btn-group" data-toggle="buttons">
+		<label id="recovery" class="btn btn-primary active">
+			<input  type="checkbox" autocomplete="off" >
+			<span>Recovery is off</span>
+		</label>
+	</div>
+</div>	
+<div id="console" style="overflow-y:scroll; width:100%; height:80%;margin-top:10px">
+
+</div>

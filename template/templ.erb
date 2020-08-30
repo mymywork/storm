@@ -1,0 +1,73 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>storm 2.0</title>
+		<script src="<%= @param['baseurl'] %>/files/dist/libs/jquery.js"></script>
+		<link type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
+		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+		<link rel="stylesheet" href="<%= @param['baseurl'] %>/files/bootstrap-3.3.5-dist/css/bootstrap.min.css">
+		<script src="<%= @param['baseurl'] %>/files/bootstrap-3.3.5-dist/js/bootstrap.min.js"></script>
+		<!--link rel="stylesheet" href="<%= @param['baseurl'] %>/files/bootstrap-material-dist/css/bootstrap-material-design.css"-->
+		<!--link rel="stylesheet" href="<%= @param['baseurl'] %>/files/bootstrap-material-dist/css/ripples.min.css"-->
+		<link rel="stylesheet" href="<%= @param['baseurl'] %>/files/storm.css" />
+		<script type="text/javascript">
+			$(document).ready(function () {
+				function logout(url){
+					 $.ajax({
+						username: 'unknown',
+						password: 'unknown',
+						url: document.location.href,
+						type: 'GET',
+						beforeSend: function(xhr)
+						{
+							xhr.setRequestHeader("Authorization", "Basic AAAAAAAAAAAAAAAAAAA=");
+						},
+						error: function(err)
+						{
+							document.location.href = document.location.href;						
+						}
+					});
+				}
+				$("#exit").click(function () {
+					//logout();
+					setTimeout(function () {
+						var p = window.location.protocol + '//'
+						// current location must return 200 OK for this GET
+						window.location = window.location.href.replace(p, p + 'logout:password@')
+					},2000)
+				});		
+			});
+		</script>
+	</head>
+	<body>
+	<div class="main_container">
+		<div class="page-header storm-page-header">
+  			<table class="storm-header-table">
+				<tr>
+					<td style="width:150px">
+						<h2>Storm 2.0</h2>
+					</td>
+					<td>
+						<ul class="nav nav-pills">
+							<li role="presentation" class=""><a href="https://zabbix/">Zabbix</a></li>
+							<li role="presentation" class="<%= ( @page == "./outages.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/outages">Outages</a></li>
+							<li role="presentation" class="<%= ( @page == "./map.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/map">Map</a></li>
+							<li role="presentation" class="<%= ( @page == "./telephony.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/telephony">Telephony</a></li>
+							<li role="presentation" class="<%= ( @page == "./geo.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/geo">Geo</a></li>
+							<li role="presentation" class="<%= ( @page == "./d3tree.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/d3tree">D3Tree</a></li>
+							<li role="presentation" class="<%= ( @page == "./searchport.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/searchport">Search port</a></li>
+							<li role="presentation" class="<%= ( @page == "./diagPort.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/diagport">Diag port</a></li>
+							<li role="presentation" class="<%= ( @page == "./sql.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/sql">Sql</a></li>
+							<li role="presentation" class="<%= ( @page == "./task.erb" ) ? "active" : "" %>"><a href="<%= @param['baseurl'] %>/tasks">Tasks</a></li>
+							<li role="presentation"><a href="#" id="exit">Logout</a></li>
+						</ul>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div class="storm_content">
+			<%= (ERBContext.new({ "param" => @param })).render("./template/#{@page}") %>	
+		</div>
+	</div>
+	</body>
+</html>

@@ -1,0 +1,88 @@
+<script type="text/javascript">
+$(document).ready(function () {
+	self = this;
+	var con = $('#console');
+	var socket = 0;
+	var color = "black";
+	var last = '';
+	function p(str) {
+		con.append(str);
+	}
+	
+	$("#search").click(function() {
+		var mac = $("#mac").val()
+		if ( socket != 0 ) {
+			socket.close()
+		}
+		socket = new WebSocket("wss://"+document.location.host+"/storm/websocket");
+		socket.onopen = function() {
+			p("Connected<br>")
+			var x = JSON.stringify({ 'action' : 'searchport', 'mac' : mac})
+			socket.send(x)	
+		};
+
+		socket.onclose = function(event) {
+			if (event.wasClean) {
+				p('Соединение закрыто чисто<br>');
+			} else {
+				p('Обрыв соединения<br>');
+			}
+			p('Код: ' + event.code + ' причина: ' + event.reason +'<br>');
+		};
+
+		socket.onmessage = function(event) {
+
+			replacer = function(str, p1, p2, offset, s) {
+				if ( p1 == "0" ) {
+					return '</span>';
+				} else if ( p1 == "31"  ) {
+					color = 'red';
+				} else if ( p1 == "32"  ) {
+					color = 'green';
+				} else if ( p1 == "35"  ) {
+					color = 'purple';
+				}
+				return '<span style="color:'+color+'">'
+			}	
+
+			console.log(event.data)
+			//buf = event.data.replace(/\n/g,"<br>")
+			list = event.data.split(/\n/)
+			
+			$(list).each(function(i,x) {
+				if ( i+1 == list.length ) {
+					last = x;
+				} else {
+					if (i == 0) {
+						x = last+x;
+					}
+					buf = x.replace(/\[([0-9]+)m/g,replacer)
+					buf = buf.replace(/\[([0-9]+);([0-9]+)m/g,replacer)
+					buf = buf.replace(/\x1b/g,'');
+					p("<span style='color:"+color+"'>"+buf+"</span><br>")
+				}
+				color = "black";
+			});
+		};
+
+		//socket.onerror = function(error) {
+		//	p("Ошибка " + error.message + "<br>");
+		//};
+	});
+		
+});
+</script>
+<div class="form-inline">
+	<div class="form-group">
+		<div class="input-group">
+			<div class="input-group-addon">
+				<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+			</div>
+			<input id="mac" type="text" class="form-control" placeholder="mac">
+		</div>
+	</div>
+	&nbsp;<button id="search" type="submit" class="btn btn-default">Search</button>
+</div>	
+<div id="console" style="overflow-y:scroll; width:100%; height:80%;margin-top:10px">
+
+</div>

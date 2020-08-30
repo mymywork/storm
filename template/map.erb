@@ -1,0 +1,154 @@
+<link rel="stylesheet" href="<%= @param['baseurl'] %>/files/dist/themes/default/style.min.css" />
+<script src="<%= @param['baseurl'] %>/files/dist/jstree.min.js"></script>
+<script type='text/javascript' src="<%= @param['baseurl'] %>/files/knockout-min.js"></script>
+<script>
+	$(document).ready(function() {
+
+		var ViewModel = function(ports) {
+    			var self = this;
+			self.host = ko.observable("");
+			self.ports = ko.observableArray([]);
+			self.setHost = function(host) {
+				self.host(host);
+			}
+			self.setPorts = function(list) {
+				self.ports(list);
+			}
+		}; 
+                var myViewModel = new ViewModel([]);
+                ko.applyBindings(myViewModel);
+		
+		//
+		var search = function () {
+			var host = $("#search").val();
+			$(".jstree-searched").removeClass("jstree-searched");
+			$(".jstree-closed").show();
+			$("#treeview").jstree('close_all');
+			var a = $("#treeview").jstree(true);
+			var b = a.search(host);
+			console.log(b);
+			var a = "span:contains('"+host+"')";
+			var b = $(a).parent().parent();
+			$(b).addClass("jstree-searched");
+			$(".jstree-closed").hide();	
+			//$(".jstree-leaf").hide();	
+			$(".jstree-searched").show();
+		}
+		
+		$("#search").change(search);
+		
+		var timer;
+		$("#search").keypress(function () {
+			clearTimeout(timer);
+			var func = function () {
+				search();	
+			}
+			timer = setTimeout(func,800);
+		});
+		//
+
+		$("#tree_expand").click(function() {
+			$("#treeview").jstree('open_all');
+		});      
+		$("#tree_collapse").click(function() {
+			$("#treeview").jstree('close_all');
+		});      
+
+		var t = $("#treeview");
+
+		t.on('dblclick.jstree',function (e, data) {
+			console.log(e.target);
+			var host = $(e.target).parent().find("span.host");
+			host = host.text();
+			$.ajax({
+				url: '/storm/gethostinfo',
+				data: { 'host': host },
+				dataType : "json",
+				success: function (data, textStatus) {
+				        if ( data.status == "ok" ) {
+						myViewModel.setHost(data.host);
+						myViewModel.setPorts(data.ports);
+					} else {
+						myViewModel.setHost("fail");
+					}
+					$(".map_container").hide();
+					$(".port_info").show();
+    				}
+			});
+
+			return false;
+		})
+		
+		$(".go_back").click(function () {
+			$(".map_container").show();
+			$(".port_info").hide();
+		});
+//		$('.storm-btn-info').click(function () {
+//			$('#myModal').modal('show');
+//		});
+
+/*		t.on('select_node.jstree', function (e, data) {
+			console.log(e);
+			console.log(data);
+			if ( t.jstree('is_open',data.node) ) {
+				t.jstree("close_node",data.node);
+			} else {
+				t.jstree("open_node",data.node);
+			}
+		})*/
+		//t.jstree();
+		t.jstree({ "search": {
+				"case_insensitive": false,
+				"show_only_matches" : false
+			},
+			"plugins" : [ "search"] 
+		});
+		$("#treeview").jstree('open_all');
+//                $.jstree.defaults.core.dblclick_toggle = false;
+		
+	});
+</script>
+
+<div class="map_container">
+	<div class="btn-group btn-group-xs" role="group" aria-label="...">
+		<button id="tree_expand" type="button" class="btn btn-default">Expand</button>
+		<button id="tree_collapse" type="button" class="btn btn-default">Collapse</button>
+	</div>
+
+	<br><br>
+	<div class="form-group label-floating">
+		<input  class="form-control" id="search" placeholder="Search" type="text">
+	</div>
+	<span style="float:right">Map generated at <%= File.mtime("./www/tree.html") %></span>  	
+	<div id="treeview">
+	<%= (ERBContext.new({ "param" => @param })).render('./www/tree.html') %>	
+	</div>	
+</div>
+<!-- modal -->
+<div class="port_info" style="display:none">
+	<a class="go_back" href="#">Back</a>
+	<br><br>
+	<table class="table table-striped storm-table-small" style="width:60%">
+		<thead>
+			<tr>
+				<th colspan="5" data-bind="text: 'Device: '+host().model"></th>
+			</tr>
+			<tr>
+				<th>Port</th>
+				<th>Desc</th>
+				<th>Mode</th>
+				<th>Untagged</th>
+				<th>Tagged</th>
+			</tr>
+		</thead>
+		<tbody data-bind='foreach: ports'>
+			<tr>
+				<td data-bind='text: port'>Port</td>
+				<td data-bind='text: desc'>Desc</td>
+				<td data-bind='text: mode'>Mode</td>
+				<td data-bind='text: untagged'>Untagged</td>
+				<td data-bind='text: tagged'>Tagged</td>
+			</tr>
+		</tbody>
+	</table>
+</div><!-- /.modal -->

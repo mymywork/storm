@@ -1,0 +1,153 @@
+<script type='text/javascript' src="<%= @param['baseurl'] %>/files/knockout-min.js"></script>
+<script type="text/javascript">
+$(document).ready(function () {
+	self = this;
+	var con = $('#console');
+	function p(str) {
+		con.append(str+"<br>");
+	}
+	function pterm(str) {
+		replacer = function(str, p1, p2, offset, s) {
+			if ( p1 == "0" ) {
+				return '</span>';
+			} else if ( p1 == "31"  ) {
+				color = 'red';
+			} else if ( p1 == "32"  ) {
+				color = 'green';
+			} else if ( p1 == "35"  ) {
+				color = 'purple';
+			}
+			return '<span style="color:'+color+'">'
+		}	
+		buf = str.replace(/\[([0-9]+)m/g,replacer)
+		buf = buf.replace(/\[([0-9]+);([0-9]+)m/g,replacer)
+		p("<span style='color:"+color+"'>"+buf+"</span>")
+	}
+
+	function amqp(ready) {
+		self = this;
+		var callbacks = {};
+		var socket = 0;
+		if ( socket != 0 ) {
+			socket.close()
+		}
+		//socket = new WebSocket("ws://"+document.location.hostname+":3333/websocket");
+		socket = new WebSocket("wss://"+document.location.host+"/storm/websocket");
+
+		socket.onopen = function() {
+			p("Connected<br>")
+			ready(self);				
+		};
+
+		socket.onclose = function(event) {
+			if (event.wasClean) {
+				p('Соединение закрыто чисто<br>');
+			} else {
+				p('Обрыв соединения<br>');
+			}
+			p('Код: ' + event.code + ' причина: ' + event.reason +'<br>');
+		};
+
+		socket.onmessage = function(event) {
+			try {
+				data = JSON.parse(event.data)
+				if ( data['action'] == 'subscribe' ) {
+					exchange = data['channel']
+					callbacks[exchange](data['msg'])
+				}
+			} catch (e) {}
+			return;
+		};
+		
+		self.subscribe = function(exchange,routing_key,callback) {
+			var z = { 'action' : 'subscribe', 'channel' : exchange }
+			if ( routing_key != null ) { z['routing_key'] = routing_key }
+			var x = JSON.stringify(z)
+			socket.send(x)
+			callbacks[exchange] = callback;
+		}
+
+		self.publish = function(exchange,msg,routing_key) {
+			var z = { "action":"publish","channel":exchange,"msg":msg }
+			if ( routing_key != null ) { z['routing_key'] = routing_key }
+			x = JSON.stringify(z)
+			console.log(x)
+			socket.send(x);
+		}
+
+		//socket.onerror = function(error) {
+		//	p("Ошибка " + error.message + "<br>");
+		//};
+	}
+
+	// app
+
+	var routing_key_id = "queue_"+Date.now();
+	var color = "black";
+	var last = '';
+	
+	var a = new amqp(function (self) {
+		self.subscribe('execsvc',routing_key_id,function(data) {
+			//console.log(data)
+			//buf = event.data.replace(/\n/g,"<br>")
+			list = data.split(/\n/)
+			$(list).each(function(i,x) {
+				// last line
+				if ( i+1 == list.length ) {
+					// if line ended crlf print
+					if (x.match(/\n$/)) {
+						pterm(x)
+					// if line not ended, add it to last buffer
+					} else {
+						last = last+x;
+					}
+				// not last line
+				} else {
+					// first line ?
+					if (i == 0) {
+						// add prev not ended crlf line to our first line
+						x = last+x;
+						last = '';
+					}
+					pterm(x)	
+				}
+				color = "black";
+			});
+		});
+	});
+	$("#diag").click(function() {
+			a.publish('execsvc',{ 'action' : 'diagPort', 'hostport' : $('#message').val(), 'recovery' : false , 'queue_key': routing_key_id },'manager');
+
+	});
+	$("#search").click(function() {
+			a.publish('execsvc',{ 'action' : 'searchPortByMac', 'mac' : $('#message').val(), 'queue_key': routing_key_id },'manager');
+	});
+
+
+});
+</script>
+<div class="form-inline">
+	<div class="form-group">
+		<div class="input-group">
+			<div class="input-group-addon">
+				<span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+			</div>
+			<input id="message" type="text" class="form-control" placeholder="message">
+		</div>
+	</div>
+	&nbsp;<button id="diag"  class="btn btn-default">Diag port</button>
+	&nbsp;<button id="search"  class="btn btn-default">Search mac</button>
+</div>
+<table class="tasks_place" data-bind="foreach: tasks">
+	<tr class="task_container">
+		<td>
+			<h2 class="task_name" data-bind="text: name"></h2><h4 data-bind="text: status"></h4>
+			<div class="progress progress-striped active">
+				<div class="progress-bar" data-bind="style: { width: progress()  }"></div>
+			</div>
+		</td>
+	</tr>
+</table>
+<div id="console" style="overflow-y:scroll; width:100%; height:80%;margin-top:10px">
+
+</div>

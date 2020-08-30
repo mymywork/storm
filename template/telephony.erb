@@ -1,0 +1,247 @@
+<script type="text/javascript">
+	$(document).ready(function () {
+		$(".pagelink").click(function (e) {
+			e.preventDefault();
+			$(".pagecurrent").attr("value",$(e.target).attr("page"));
+			$(".form-inline").submit();	
+		});
+		$(".pagesize").change(function () {
+			
+			$(".form-inline").submit();	
+			
+		});
+		$(".sort").click(function (e) {
+			var name = $(e.target).text();
+			var ordercur = "."+name+"_sort";
+			var direction = $(ordercur).val();
+
+			//var icon = $("th.hdr_"+name+" > span.glyphicon ");
+			//icon.removeClass("glyphicon-triangle-bottom");
+			//icon.removeClass("glyphicon-triangle-top");
+			
+			if ( direction == "asc" ) {
+				direction = "desc";
+		//		icon.addClass("glyphicon-triangle-bottom")
+			} else {
+				direction = "asc"	
+		//		icon.addClass("glyphicon-triangle-top")
+	
+			}	
+			$(".sorting").val("");			
+			$(ordercur).val(direction);
+			$(".form-inline").submit();
+		});
+		$(".clearsorting").click(function (e) {
+			$(".sorting").val("");			
+			$(".form-inline").submit();
+		});
+		$(".session").dblclick(function (e) {
+			var lr = $(e.target).parent().attr("lr");
+			var from = $(e.target).parent().attr("date");
+			
+			$.ajax({
+				url: '/storm/getvoiprequest',
+				data: { 'lr': lr , 'date' : from},
+				method: 'post',
+				dataType : "json",
+				success: function (data, textStatus) {
+				        if ( data.status == "ok" ) {
+						$(".sessionContainer").hide();
+						$(".requestContainer").show();
+						$(".request_info").text(data.info['requests']);	
+					} else {
+						alert("Failed ajax request");
+					}
+    				}
+			});
+		});
+		$(".go_back").click(function (e) {
+			e.preventDefault();
+			$(".sessionContainer").show();
+			$(".requestContainer").hide();
+		});
+
+	});
+</script>
+
+<div class="sessionContainer">
+<form action="<%= @param['baseurl'] %>/telephony" method="get" class="form-inline">
+	<div class="form-group">
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="session_start_from" value="<%= @param['query']['session_start_from'] %>" placeholder="session_start(from)"  type="text" class="form-control" style="width:150px">
+			<input name="session_start_to" value="<%= @param['query']['session_start_to'] %>" placeholder="session_start(to)"  type="text" class="form-control" style="width:150px">
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="id" value="<%= @param['query']['id'] %>" placeholder="id"  type="text" class="form-control" style="width:170px">
+			<select class="form-control" style="width:130px;" name="id_comp">
+				  <% tmp = @param['query']['id_comp']  %>
+				  <option <%=  ( tmp == 'equal' ? 'selected' : '' )  %> value="equal">Equal</option>
+				  <option <%=  ( tmp == 'big' ? 'selected' : '' )  %> value="big">Big</option>
+				  <option <%=  ( tmp == 'bigorequal' ? 'selected' : '' )  %> value="bigorequal">Big or equal</option>
+				  <option <%=  ( tmp == 'small' ? 'selected' : '' )  %> value="small">Small</option>
+				  <option <%=  ( tmp == 'smallorequal' ? 'selected' : '' )  %> value="smallorequal">Small or equal</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="type" value="<%= @param['query']['type'] %>" placeholder="type 1=out/2=in"  type="text" class="form-control"  style="width:170px">
+			<select class="form-control" style="width:130px;" name="type_comp">
+				  <% tmp = @param['query']['type_comp']  %>
+				  <option <%=  ( tmp == 'equal' ? 'selected' : '' )  %> value="equal">Equal</option>
+				  <option <%=  ( tmp == 'big' ? 'selected' : '' )  %> value="big">Big</option>
+				  <option <%=  ( tmp == 'bigorequal' ? 'selected' : '' )  %> value="bigorequal">Big or equal</option>
+				  <option <%=  ( tmp == 'small' ? 'selected' : '' )  %> value="small">Small</option>
+				  <option <%=  ( tmp == 'smallorequal' ? 'selected' : '' )  %> value="smallorequal">Small or equal</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="nas_id" value="<%= @param['query']['nas_id'] %>" placeholder="nas_id"  type="text" class="form-control"  style="width:170px">
+			<select class="form-control" style="width:130px;" name="nas_id_comp">
+				  <% tmp = @param['query']['nas_id_comp']  %>
+				  <option <%=  ( tmp == 'equal' ? 'selected' : '' )  %> value="equal">Equal</option>
+				  <option <%=  ( tmp == 'big' ? 'selected' : '' )  %> value="big">Big</option>
+				  <option <%=  ( tmp == 'bigorequal' ? 'selected' : '' )  %> value="bigorequal">Big or equal</option>
+				  <option <%=  ( tmp == 'small' ? 'selected' : '' )  %> value="small">Small</option>
+				  <option <%=  ( tmp == 'smallorequal' ? 'selected' : '' )  %> value="smallorequal">Small or equal</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="lid" value="<%= @param['query']['lid'] %>" placeholder="lid"  type="text" class="form-control" style="width:170px">
+			<select class="form-control" style="width:130px;" name="lid_comp">
+				  <% tmp = @param['query']['lid_comp']  %>
+				  <option <%=  ( tmp == 'equal' ? 'selected' : '' )  %> value="equal">Equal</option>
+				  <option <%=  ( tmp == 'big' ? 'selected' : '' )  %> value="big">Big</option>
+				  <option <%=  ( tmp == 'bigorequal' ? 'selected' : '' )  %> value="bigorequal">Big or equal</option>
+				  <option <%=  ( tmp == 'small' ? 'selected' : '' )  %> value="small">Small</option>
+				  <option <%=  ( tmp == 'smallorequal' ? 'selected' : '' )  %> value="smallorequal">Small or equal</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="cid" value="<%= @param['query']['cid'] %>" placeholder="cid"  type="text" class="form-control" style="width:170px">
+			<select class="form-control" style="width:130px;" name="cid_comp">
+				  <% tmp = @param['query']['cid_comp']  %>
+				  <option <%=  ( tmp == 'equal' ? 'selected' : '' )  %> value="equal">Equal</option>
+				  <option <%=  ( tmp == 'big' ? 'selected' : '' )  %> value="big">Big</option>
+				  <option <%=  ( tmp == 'bigorequal' ? 'selected' : '' )  %> value="bigorequal">Big or equal</option>
+				  <option <%=  ( tmp == 'small' ? 'selected' : '' )  %> value="small">Small</option>
+				  <option <%=  ( tmp == 'smallorequal' ? 'selected' : '' )  %> value="smallorequal">Small or equal</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="session_time" value="<%= @param['query']['session_time'] %>" placeholder="session_time"  type="text" class="form-control" style="width:170px">
+			<select class="form-control" style="width:130px;" name="session_time_comp">
+				  <% tmp = @param['query']['session_time_comp']  %>
+				  <option <%=  ( tmp == 'equal' ? 'selected' : '' )  %> value="equal">Equal</option>
+				  <option <%=  ( tmp == 'big' ? 'selected' : '' )  %> value="big">Big</option>
+				  <option <%=  ( tmp == 'bigorequal' ? 'selected' : '' )  %> value="bigorequal">Big or equal</option>
+				  <option <%=  ( tmp == 'small' ? 'selected' : '' )  %> value="small">Small</option>
+				  <option <%=  ( tmp == 'smallorequal' ? 'selected' : '' )  %> value="smallorequal">Small or equal</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="from_number" value="<%= @param['query']['from_number'] %>" placeholder="from_number"  type="text" class="form-control" style="width:170px">
+			<select class="form-control" style="width:130px;" name="from_number_comp">
+				  <% tmp = @param['query']['from_number_comp']  %>
+				  <option <%=  ( tmp == 'equalstr' ? 'selected' : '' )  %> value="equalstr">Equal</option>
+				  <option <%=  ( tmp == 'mask' ? 'selected' : '' )  %> value="mask">Mask</option>
+				  <option <%=  ( tmp == 'regexp' ? 'selected' : '' )  %> value="regexp">Regexp</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="to_number" value="<%= @param['query']['to_number'] %>" placeholder="to_number"  type="text" class="form-control" style="width:170px">
+			<select class="form-control" style="width:130px;" name="to_number_comp">
+				  <% tmp = @param['query']['to_number_comp']  %>
+				  <option <%=  ( tmp == 'equalstr' ? 'selected' : '' )  %> value="equalstr">Equal</option>
+				  <option <%=  ( tmp == 'mask' ? 'selected' : '' )  %> value="mask">Mask</option>
+				  <option <%=  ( tmp == 'regexp' ? 'selected' : '' )  %> value="regexp">Regexp</option>
+			</select>
+		</div>
+    		<div class="input-group" style="margin:5px 10px">
+			<input name="h323_id" value="<%= @param['query']['h323_id'] %>" placeholder="h323_id"  type="text" class="form-control" style="width:170px">
+			<select class="form-control" style="width:130px;" name="h323_id_comp">
+				  <% tmp = @param['query']['h323_id_comp']  %>
+				  <option <%=  ( tmp == 'equalstr' ? 'selected' : '' )  %> value="equalstr">Equal</option>
+				  <option <%=  ( tmp == 'mask' ? 'selected' : '' )  %> value="mask">Mask</option>
+				  <option <%=  ( tmp == 'regexp' ? 'selected' : '' )  %> value="regexp">Regexp</option>
+			</select>
+		</div>
+		<input type="hidden" class="pagecurrent" name="page" value="<%= @param['query']['page'] %>" />
+		<%
+			@param['query']['order'].each do |k,v|
+			%>  
+			<input type="hidden" class="<%= k %> sorting" name="<%= k %>" value="<%= @param['query'][k] %>" />
+			<%		
+			end
+		%>
+
+		&nbsp;&nbsp;&nbsp;<span>Results on page:</span>
+		<select class="pagesize form-control" name="pagesize">
+			<% tmp = @param['query']['pagesize'] %>
+			<option <%=  ( tmp == '25' ? 'selected' : '' )  %> value="25">25</option>
+			<option <%=  ( tmp == '50' ? 'selected' : '' )  %> value="50">50</option>
+			<option <%=  ( tmp == '100' ? 'selected' : '' )  %> value="100">100</option>
+			<option <%=  ( tmp == '300' ? 'selected' : '' )  %> value="300">300</option>
+			<option <%=  ( tmp == '500' ? 'selected' : '' )  %> value="500">500</option>
+			<option <%=  ( tmp == '1000' ? 'selected' : '' )  %> value="1000">1000</option>
+		</select>
+		&nbsp;&nbsp;&nbsp;<button type="submit" class="btn btn-default">Search</button>
+		&nbsp;&nbsp;&nbsp;<button class="btn btn-default clearsorting">Clear sorting</button>
+		&nbsp;&nbsp;&nbsp;<span>All rows:</span><span><%= @param['query']['all']  %></span>
+		<nav aria-label="Page navigation">
+			<ul class="pagination">
+				<li>
+				<a href="#" aria-label="Previous">
+					<span aria-hidden="true">&laquo;</span>
+				</a>
+				</li>
+				<% a = @param['query']['pagestart']
+				   b = @param['query']['pageend']
+				   for i in a..b %>
+			   <li <%= ( i == @param['query']['page'].to_i ? 'class="active"' : '' )  %> ><a class="pagelink" page="<%= i %>"><%= i %></a></li>
+				<% end %>
+				<li>
+				<a href="#" aria-label="Next">
+					<span aria-hidden="true">&raquo;</span>
+				</a>
+				</li>
+			  </ul>
+		  </nav>
+  	</div>
+
+</form>
+<table class="table table-striped table-condensed">
+	<tr>
+		<th class="sort hdr_id"><span>id</span><span class="glyphicon <%= @param['query']['orderclass']['id'] %>"></span></th>
+		<th class="sort hdr_type"><span>type</span><span class="glyphicon <%= @param['query']['orderclass']['type'] %>"></span></th>
+		<th class="sort hdr_nas_id" width="5%" ><span>nas_id</span><span class="glyphicon <%= @param['query']['orderclass']['nas_id'] %>"></span></th>
+		<th class="sort hdr_lid"><span>lid</span><span class="glyphicon <%= @param['query']['orderclass']['lid'] %>"></span></th>
+		<th class="sort hdr_cid"><span>cid</span><span class="glyphicon <%= @param['query']['orderclass']['cid'] %>"></span></th>
+		<th class="sort hdr_session_start" width="12%"><span>session_start</span><span class="glyphicon <%= @param['query']['orderclass']['session_start'] %>"></span></th>
+		<th class="sort hdr_from_number"><span>from_number</span><span class="glyphicon <%= @param['query']['orderclass']['from_number'] %>"></span></th>
+		<th class="sort hdr_to_number"><span>to_number</span><span class="glyphicon <%= @param['query']['orderclass']['to_number'] %>"></span></th>
+		<th class="sort hdr_session_time"><span>session_time</span><span class="glyphicon <%= @param['query']['orderclass']['session_time'] %>"></span></th>
+		<th class="sort hdr_dc"><span>dc</span><span class="glyphicon <%= @param['query']['orderclass']['dc'] %>"></span></th>
+		<th class="sort hdr_h323_id" width="20%"><span>h323_id</span><span class="glyphicon <%= @param['query']['orderclass']['h323_id'] %>"></span></th>
+	</tr>
+	<% @param['list'].each do |row| %>
+		<tr lr="<%= row['lr'] %>" date="<%= row['session_start'] %>" class="session">
+			<td><%= row['id'] %></td>
+			<td><%= row['type'] %></td>
+			<td><%= row['nas_id'] %></td>
+			<td><%= row['lid'] %></td>
+			<td><%= row['cid'] %></td>
+			<td><%= row['session_start'] %></td>
+			<td><%= row['from_number'] %></td>
+			<td><%= row['to_number'] %></td>
+			<td><%= row['session_time'] %></td>
+			<td><%= row['dc'] %></td>
+			<td><%= row['h323_id'] %></td>
+		</tr>
+	<% end %>
+</table>
+</div>
+<div class="requestContainer" style="display:none">
+	<a class="go_back" href="">Back</a>
+	<br><br>
+	<textarea class="request_info" style="width:100%;height:85%" spellcheck="false">
+	</textarea>
+</div>

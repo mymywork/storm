@@ -1,0 +1,92 @@
+<!--script type='text/javascript' src="<%= @param['baseurl'] %>/files/knockout-min.js"></script-->
+<script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+<script type='text/javascript' src="<%= @param['baseurl'] %>/files/exchange.js"></script>
+<script type="text/javascript">
+$(document).ready(function () {
+	self = this;
+
+	// knockout app
+
+	var kmodel = function() {
+		var self = this;
+
+		self.tasks = ko.observableArray([]);
+
+		self.updateTask = function (task) {
+		
+			var tasks = self.tasks();
+			var found = false;
+			$(tasks).each(function (i,t) {
+				if ( t['task']() == task['task'] ) {
+					for (var k in task) { 
+						// update
+						t[k](task[k]);				
+					}
+					found = true;
+				}
+				//console.log(self.tasks())
+			});
+			if ( !found ) {
+				try {
+					taskob = {};
+					for (var k in task) { 
+						// update
+						taskob[k] = ko.observable(task[k]);				
+					}
+					self.tasks.push(taskob);
+				} catch (e) {
+					console.log(e);
+				}	
+			}
+			//self.tasks(tasks);
+			console.log('update end');
+		}
+		self.setExchange = function(e) {
+			self.exchange = e;
+		}	
+		self.click = function(s) {
+			if ( s.state() == 'stop' ) {
+				s.state('start')
+				self.exchange.publishEvent('taskinfo',{ "task" : s.task(), "state": s.state() })
+			} else {
+				//self.amqp.publish('taskcontrol',{ "action" : "stop_group" , "group" : tg.group() },null)
+			}	
+		}
+
+	}
+	 
+	var viewModel = new kmodel();
+	ko.applyBindings(viewModel);
+
+	// amqp app
+
+	var a = new Exchange(function (self) {
+		viewModel.setExchange(self);
+		self.subscribe('taskinfo',function(data) {
+			if ( data['action'] == 'event' && data['name'] == 'taskinfo' ) {
+				d = data['data']
+				viewModel.updateTask(d)
+			}
+		});
+	});
+
+});
+</script>
+
+<div class="" style="width:600px" data-bind="foreach: tasks">
+	<div class="panel-heading">
+		<table class="tasks_place" style="width:500px">
+			<tr class="task_container">
+				<td width="80%" style="padding-right:20px;">
+					<h2 class="task_name" data-bind="text: task"></h2><h4 data-bind="text: desc"></h4>
+					<div class="progress progress-striped active" data-bind="css: { hide: state() == 'stop' }" >
+						<div class="progress-bar" data-bind="style: { width: percent()+'%' }"></div>
+					</div>
+				</td>
+				<td>
+					<a href="javascript:void(0)" class="btn" data-bind="text: state() == 'stop' ? 'Start' : 'Running' ,css: { 'btn-success': state() == 'stop', 'btn-danger': state() != 'stop', 'btn-raised': state() == 'running' }, click: $root.click"></a>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>

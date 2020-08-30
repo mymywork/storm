@@ -1,0 +1,32 @@
+#
+# path
+#
+
+$rootpath = '/opt/storm'
+
+#
+# accounts
+#
+
+$db_billing_login = 'login'
+$db_billing_password = 'password'
+$db_billing_host = 'ipaddresss'
+$db_billing_database = 'database'
+
+# special account for upload config by SSH (ex: juniper)
+$backupSSHAccount = { 'login' => 'login', 'password' => 'password' }
+
+# enable mode password
+$enablePassword = 'password'
+
+# accounts for login to device, sections with hosts allow login only it hosts.
+$accounts = [ 
+	{ 'login' => 'login1' , 'password' => 'password' }, 
+	{ 'login' => 'login2' , 'password' => 'password' }, 
+	{ 'login' => 'login3' , 'password' => 'password', 
+		'hosts' => [ 
+			{ 'host' => 'host1', 'port' => 22 }, 
+			{ 'host' => 'host2', 'port' => 22 }, 
+		]
+	}, 
+]
